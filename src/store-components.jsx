@@ -2,13 +2,9 @@ import React, { useEffect, useState } from 'react'
 import {
   ArrowRight,
   ArrowUpRight,
-  BatteryCharging,
-  Cable,
-  Camera,
   CheckCircle2,
   ChevronRight,
   Headphones,
-  Lightbulb,
   MapPin,
   Menu,
   MessageCircle,
@@ -20,7 +16,6 @@ import {
   ShoppingBag,
   Trash2,
   Truck,
-  Wifi,
   X,
 } from 'lucide-react'
 import { Brand, EmptyState, ProductMedia } from './components'
@@ -31,68 +26,17 @@ export const productUrl = (product) =>
   `/products/${encodeURIComponent(product.id)}`
 export const shopCategory = (category) =>
   `/shop?category=${encodeURIComponent(category)}`
-export const collections = [
-  {
-    id: 'power',
-    name: 'Power & Backup',
-    category: 'Power & Backup',
-    description: 'Keep the everyday switched on.',
-    icon: BatteryCharging,
-    tone: 'sand',
-    image: '/images/router-power-bank-catalog.png',
-  },
-  {
-    id: 'electrical',
-    name: 'Lighting & Electrical',
-    category: 'Electrical Essentials',
-    description: 'Bright ideas. Practical essentials.',
-    icon: Lightbulb,
-    tone: 'olive',
-  },
-  {
-    id: 'networking',
-    name: 'Routers & Networking',
-    category: 'Networking',
-    description: 'A better connection starts here.',
-    icon: Wifi,
-    tone: 'clay',
-  },
-  {
-    id: 'security',
-    name: 'CCTV & Security',
-    category: 'Security',
-    description: 'A little more peace of mind.',
-    icon: Camera,
-    tone: 'stone',
-  },
-  {
-    id: 'accessories',
-    name: 'Cables & Accessories',
-    category: 'Accessories',
-    description: 'The small things that connect it all.',
-    icon: Cable,
-    tone: 'olive',
-  },
-  {
-    id: 'bundles',
-    name: 'Everyday Bundles',
-    category: 'Bundles',
-    description: 'More essentials. One simple order.',
-    icon: Package,
-    tone: 'sand',
-    image: '/images/router-power-bank-in-use.png',
-  },
-]
-
 export function StoreLayout({ store, children }) {
   const { url, navigate } = useRoute()
   const [menuOpen, setMenuOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const categories = [
+    ...new Set(store.products.map((product) => product.category)),
+  ]
   useEffect(() => setMenuOpen(false), [url.pathname, url.search])
   const nav = [
     { href: '/', name: 'Home' },
     { href: '/shop', name: 'Shop all' },
-    { href: '/collections', name: 'Collections' },
     { href: '/about', name: 'Our story' },
     { href: '/contact', name: 'Contact' },
   ]
@@ -241,11 +185,11 @@ export function StoreLayout({ store, children }) {
           <div>
             <h3>The store</h3>
             <Link href="/shop">Shop all products</Link>
-            <Link href="/collections">Our collections</Link>
-            <Link href="/shop?category=Power%20%26%20Backup">
-              Power & backup
-            </Link>
-            <Link href="/shop?category=Bundles">Shop bundles</Link>
+            {categories.slice(0, 3).map((category) => (
+              <Link key={category} href={shopCategory(category)}>
+                {category}
+              </Link>
+            ))}
           </div>
           <div>
             <h3>Here to help</h3>
@@ -334,30 +278,6 @@ export function SectionHeading({ eyebrow, title, href, link = 'Explore all' }) {
         </Link>
       )}
     </div>
-  )
-}
-export function CollectionCard({ collection, compact = false }) {
-  const Icon = collection.icon
-  return (
-    <Link
-      href={shopCategory(collection.category)}
-      className={`sf-collection sf-tone-${collection.tone} ${compact ? 'compact' : ''}`}
-    >
-      <div className="sf-collection-art">
-        {collection.image ? (
-          <img src={collection.image} alt="" loading="lazy" />
-        ) : (
-          <Icon size={76} strokeWidth={0.85} />
-        )}
-        <span>
-          <ArrowUpRight size={19} />
-        </span>
-      </div>
-      <div className="sf-collection-copy">
-        <h3>{collection.name}</h3>
-        <p>{collection.description}</p>
-      </div>
-    </Link>
   )
 }
 export function ProductCard({ product, onAdd }) {

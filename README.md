@@ -4,9 +4,8 @@ A multi-page React/Vite store with a Node API and MongoDB. Preserves the existin
 
 ## Store pages
 
-- `/` — storefront home with featured products and collections.
+- `/` — storefront home with featured products.
 - `/shop` — searchable catalog with category, availability, and sorting filters stored in the URL.
-- `/collections` — power, electrical, networking, security, accessories, and bundles.
 - `/products/:id` — individual product pages with photo galleries, quantities, compatibility and delivery details.
 - `/cart` — shopping bag, quantity controls, delivery progress and totals.
 - `/checkout` — delivery details and order submission.
@@ -14,7 +13,7 @@ A multi-page React/Vite store with a Node API and MongoDB. Preserves the existin
 - `/about` and `/contact` — store information, contact options and ordering/compatibility FAQs.
 - `/admin` — protected product and order management.
 
-All pages support direct links and refresh. Store navigation uses browser history, preserving the bag and checkout form while moving between pages. Collections without listed products offer a WhatsApp enquiry.
+All pages support direct links and refresh. Store navigation uses browser history, preserving the bag and checkout form while moving between pages. Categories in the shop and footer come from visible products managed in admin. The old `/collections` address redirects to `/shop`.
 
 ## Run locally
 
@@ -40,7 +39,7 @@ For a fresh checkout, copy `.env.example` to `.env`, supply a MongoDB URI and ad
 
 Delivery is **Rs. 250**, becoming free when the merchandise subtotal is **greater than Rs. 5,000**. Orders are denominated in PKR. WhatsApp remains `0318 7083785`.
 
-The original three products are inserted into the `se_store` database on first connection, with **25 starter units each**. Review and replace these starter stock quantities before accepting real orders. Existing products are never overwritten by initialization. Add electrical items such as lights, switches, sockets and cables through the admin panel; categories are created from the product category field. Collections without listed stock remain WhatsApp enquiries.
+The original three products are inserted into the `se_store` database on first connection, with **25 starter units each**. Review and replace these starter stock quantities before accepting real orders. Existing products are never overwritten by initialization. Add electrical items such as lights, switches, sockets and cables through the admin panel; categories are created from the product category field. Only categories belonging to visible products appear in the storefront.
 
 MongoDB Atlas or another replica set is required for checkout/cancellation transactions. `MONGODB_DB` optionally changes the database name. The server creates product/order indexes and TTL indexes for sessions and login throttling.
 

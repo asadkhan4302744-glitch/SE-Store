@@ -22,8 +22,6 @@ import { money, whatsapp } from './api'
 import { Link, useRoute } from './router'
 import {
   Breadcrumb,
-  CollectionCard,
-  collections,
   MissingPage,
   NeedHelp,
   PageIntro,
@@ -59,8 +57,8 @@ export function HomePage({ store }) {
             <Link className="sf-button sf-button-dark" href="/shop">
               Discover the store <ArrowRight size={18} />
             </Link>
-            <Link className="sf-text-link" href="/collections">
-              Find your collection <ArrowUpRight size={16} />
+            <Link className="sf-text-link" href="/about">
+              Meet your local store <ArrowUpRight size={16} />
             </Link>
           </div>
           <div className="sf-hero-signoff">
@@ -111,23 +109,6 @@ export function HomePage({ store }) {
           Get to know us <ArrowUpRight size={15} />
         </Link>
       </div>
-      <section className="sf-section sf-container">
-        <SectionHeading
-          eyebrow="A PLACE FOR EVERY ESSENTIAL"
-          title="What are you looking for?"
-          href="/collections"
-          link="All collections"
-        />
-        <div className="sf-home-collections">
-          {collections.slice(0, 4).map((collection) => (
-            <CollectionCard
-              key={collection.id}
-              collection={collection}
-              compact
-            />
-          ))}
-        </div>
-      </section>
       <section className="sf-section sf-container sf-home-products">
         <SectionHeading
           eyebrow="THE EVERYDAY EDIT"
@@ -217,12 +198,7 @@ export function ShopPage({ store }) {
   const category = url.searchParams.get('category') || ''
   const sort = url.searchParams.get('sort') || 'featured'
   const inStock = url.searchParams.get('stock') === 'available'
-  const categories = [
-    ...new Set([
-      ...store.products.map((p) => p.category),
-      ...collections.map((c) => c.category),
-    ]),
-  ]
+  const categories = [...new Set(store.products.map((p) => p.category))]
   const filtered = store.products
     .filter(
       (p) =>
@@ -411,32 +387,6 @@ export function ShopPage({ store }) {
           )}
         </section>
       </div>
-      <div className="sf-help-section">
-        <NeedHelp />
-      </div>
-    </div>
-  )
-}
-
-export function CollectionsPage() {
-  return (
-    <div className="sf-container">
-      <Breadcrumb items={[{ label: 'Collections' }]} />
-      <PageIntro
-        eyebrow="FIND YOUR CONNECTION"
-        title="A place for every essential."
-      >
-        From a little backup to a brighter space. Start with what you need.
-      </PageIntro>
-      <div className="sf-collections-grid">
-        {collections.map((collection) => (
-          <CollectionCard collection={collection} key={collection.id} />
-        ))}
-      </div>
-      <p className="sf-collection-note">
-        Some collections are available by enquiry. We’ll show you listed
-        products or help you find options on WhatsApp.
-      </p>
       <div className="sf-help-section">
         <NeedHelp />
       </div>
