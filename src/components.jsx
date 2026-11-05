@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { X, Zap } from 'lucide-react'
+import { Link } from './router'
 
 export function Brand() {
   return (
-    <a className="brand" href="/" aria-label="Shahzad Electronics home">
+    <Link className="brand" href="/" aria-label="Shahzad Electronics home">
       <img src="/images/shahzad-se-logo.png" alt="" />
       <span>
         SHAHZAD
@@ -11,7 +12,7 @@ export function Brand() {
           ELECTRONICS<span className="brand-dot">.</span>
         </strong>
       </span>
-    </a>
+    </Link>
   )
 }
 

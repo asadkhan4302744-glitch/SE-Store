@@ -1,6 +1,20 @@
 # SE Store · Shahzad Electronics
 
-A minimal React/Vite store with a Node API and MongoDB. Preserves the existing Shahzad Electronics branding, cream/charcoal/gold palette, product photography, contact number, and delivery policy.
+A multi-page React/Vite store with a Node API and MongoDB. Preserves the existing Shahzad Electronics branding, cream/charcoal/gold palette, product photography, contact number, and delivery policy.
+
+## Store pages
+
+- `/` — storefront home with featured products and collections.
+- `/shop` — searchable catalog with category, availability, and sorting filters stored in the URL.
+- `/collections` — power, electrical, networking, security, accessories, and bundles.
+- `/products/:id` — individual product pages with photo galleries, quantities, compatibility and delivery details.
+- `/cart` — shopping bag, quantity controls, delivery progress and totals.
+- `/checkout` — delivery details and order submission.
+- `/order-confirmation` — receipt and next steps; refresh retains the current tab’s receipt without storing customer contact/address details in browser storage.
+- `/about` and `/contact` — store information, contact options and ordering/compatibility FAQs.
+- `/admin` — protected product and order management.
+
+All pages support direct links and refresh. Store navigation uses browser history, preserving the bag and checkout form while moving between pages. Collections without listed products offer a WhatsApp enquiry.
 
 ## Run locally
 

@@ -5,11 +5,7 @@ import { resolve, extname } from 'node:path'
 import api from './api.mjs'
 
 const production = process.env.NODE_ENV === 'production'
-const vite = production
-  ? null
-  : await (
-      await import('vite')
-    ).createServer({ server: { middlewareMode: true }, appType: 'spa' })
+let vite = null
 const root = resolve('dist')
 const types = {
   '.html': 'text/html; charset=utf-8',
@@ -62,6 +58,14 @@ const server = http.createServer(async (req, res) => {
     res.end('Bad request')
   }
 })
+if (!production) {
+  vite = await (
+    await import('vite')
+  ).createServer({
+    server: { middlewareMode: true, hmr: { server } },
+    appType: 'spa',
+  })
+}
 server.listen(
   Number(process.env.PORT) || 5173,
   process.env.HOST || '127.0.0.1',
