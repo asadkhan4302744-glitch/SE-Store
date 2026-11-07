@@ -10,9 +10,23 @@ test(
   async () => {
     // Always isolate integration data. Never delete or test against the configured store database.
     process.env.MONGODB_DB = `se_store_test_${randomUUID().replaceAll('-', '').slice(0, 16)}`
-    const { default: api } = await import('../server/api.mjs')
+    // Test authentication with isolated credentials, independently of the owner's .env password.
+    process.env.ADMIN_EMAIL = 'integration@se-store.test'
+    process.env.ADMIN_PASSWORD = randomUUID()
+    const { default: api } = await import('../api/[...route].js')
+    const { default: adminApi } = await import('../api/admin/[action].js')
+    const { default: productApi } =
+      await import('../api/admin/products/[id].js')
+    const { default: orderApi } = await import('../api/admin/orders/[id].js')
     const { database, closeDatabase } = await import('../server/database.mjs')
-    const server = http.createServer(api)
+    // Exercise the actual Vercel entry files at their corresponding path depths.
+    const server = http.createServer((req, res) => {
+      const path = new URL(req.url, 'http://localhost').pathname
+      if (path.startsWith('/api/admin/products/')) return productApi(req, res)
+      if (path.startsWith('/api/admin/orders/')) return orderApi(req, res)
+      if (path.startsWith('/api/admin/')) return adminApi(req, res)
+      return api(req, res)
+    })
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
     const base = `http://127.0.0.1:${server.address().port}/api`
     let cookie = ''

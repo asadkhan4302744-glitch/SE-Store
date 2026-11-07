@@ -60,7 +60,7 @@ The database integration test is opt-in:
 SE_STORE_INTEGRATION=1 npm test
 ```
 
-It uses a randomly named `se_store_test_*` database, verifies authentication, product editing, checkout, idempotency, stock, cancellation and logout, then drops only that temporary database. It requires the `.env` credentials and MongoDB permissions to create/drop the temporary database. Normal tests run domain validation without connecting to MongoDB.
+It uses a randomly named `se_store_test_*` database and temporary admin credentials, verifies authentication, product editing, checkout, idempotency, stock, cancellation and logout, then drops only that temporary database. It requires `MONGODB_URI` and MongoDB permissions to create/drop the temporary database. The owner's admin credentials are not used or changed. Normal tests run domain validation without connecting to MongoDB.
 
 ## Production
 
@@ -71,4 +71,4 @@ npm start
 
 `npm start` serves `dist` and the API on port 5173 (or `PORT`). Serve it behind HTTPS in production; production admin cookies require HTTPS. `npm run preview` is Vite's static-only build preview and does not run the API.
 
-For Vercel, use the Vite preset, `npm run build`, and output directory `dist`. The `api/[...route].js` function handles the API and `vercel.json` handles frontend navigation. Configure `MONGODB_URI`, optional `MONGODB_DB`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` as server environment variables. Configure Atlas network access for the deployment. Never prefix private settings with `VITE_`.
+For Vercel, use the Vite preset, `npm run build`, and output directory `dist`. The entry files in `api/` delegate to the shared server handler; `vercel.json` handles frontend navigation. Root API paths use `api/[...route].js`; nested admin paths use `api/admin/[action].js`, `api/admin/products/[id].js`, and `api/admin/orders/[id].js`. Keep these nested entry files: the top-level dynamic function alone does not match `/api/admin/login` or other nested paths in this Vite deployment. Configure `MONGODB_URI`, optional `MONGODB_DB`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` (at least 12 characters) as server environment variables. Configure Atlas network access for the deployment. Never prefix private settings with `VITE_`.
