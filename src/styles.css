@@ -1917,6 +1917,66 @@ td small {
 .product-form {
   padding-top: 3px;
 }
+.product-image-upload {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f1efe7;
+}
+.product-image-upload > .product-image {
+  width: 88px;
+  height: 100px;
+  flex-shrink: 0;
+  border-radius: 6px;
+}
+.product-image-upload > div:last-child {
+  flex: 1;
+  min-width: 0;
+}
+.product-image-upload input[type='file'] {
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+}
+.product-image-upload input::file-selector-button {
+  padding: 8px 10px;
+  margin-right: 8px;
+  border: 1px solid #cfcfbe;
+  border-radius: 5px;
+  background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+}
+.product-image-upload small,
+.product-image-upload p {
+  display: block;
+  font-size: 10px;
+  line-height: 1.7;
+  color: #65705b;
+}
+.product-image-upload p {
+  margin: 7px 0 0;
+}
+.product-image-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 0;
+  background: transparent;
+  font-size: 11px;
+  color: #79584b;
+}
+@media (max-width: 450px) {
+  .product-image-upload {
+    flex-direction: column;
+  }
+}
 .checkbox-label {
   display: flex;
   gap: 12px;

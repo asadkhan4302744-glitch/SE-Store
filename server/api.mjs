@@ -6,6 +6,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto'
 import { database } from './database.mjs'
+import { MAX_IMAGE_REQUEST_BYTES, uploadProductImage } from './media.mjs'
 import {
   calculateOrder,
   HttpError,
@@ -28,21 +29,21 @@ function send(res, status, data) {
   res.end(JSON.stringify(data))
 }
 
-async function readBody(req) {
+async function readBody(req, maxBytes = 24000) {
   if (!req.headers['content-type']?.includes('application/json'))
     throw new HttpError(415, 'Send JSON data.')
   // Vercel may parse the JSON body before calling a Node function.
   if (req.body && typeof req.body === 'object') {
     if (Array.isArray(req.body))
       throw new HttpError(400, 'The request contains invalid JSON.')
-    if (Buffer.byteLength(JSON.stringify(req.body)) > 24000)
+    if (Buffer.byteLength(JSON.stringify(req.body)) > maxBytes)
       throw new HttpError(413, 'This request is too large.')
     return req.body
   }
   let body = ''
   for await (const chunk of req) {
     body += chunk
-    if (Buffer.byteLength(body) > 24000)
+    if (Buffer.byteLength(body) > maxBytes)
       throw new HttpError(413, 'This request is too large.')
   }
   try {
@@ -139,16 +140,14 @@ export default async function api(req, res) {
       )
       const window = Math.floor(Date.now() / 900000)
       const key = `${ip}:${window}`
-      const attempt = await db
-        .collection('loginAttempts')
-        .findOneAndUpdate(
-          { _id: key },
-          {
-            $inc: { count: 1 },
-            $setOnInsert: { expiresAt: new Date(Date.now() + 1800000) },
-          },
-          { upsert: true, returnDocument: 'after' },
-        )
+      const attempt = await db.collection('loginAttempts').findOneAndUpdate(
+        { _id: key },
+        {
+          $inc: { count: 1 },
+          $setOnInsert: { expiresAt: new Date(Date.now() + 1800000) },
+        },
+        { upsert: true, returnDocument: 'after' },
+      )
       if (attempt.count > 10)
         throw new HttpError(
           429,
@@ -163,22 +162,24 @@ export default async function api(req, res) {
       )
         throw new HttpError(401, 'Email or password is incorrect.')
       const token = randomBytes(32).toString('hex')
-      await db
-        .collection('sessions')
-        .insertOne({
-          _id: hash(token),
-          email: process.env.ADMIN_EMAIL,
-          credentials: hash(
-            `${process.env.ADMIN_EMAIL}:${process.env.ADMIN_PASSWORD}`,
-          ),
-          expiresAt: new Date(Date.now() + 28800000),
-        })
+      await db.collection('sessions').insertOne({
+        _id: hash(token),
+        email: process.env.ADMIN_EMAIL,
+        credentials: hash(
+          `${process.env.ADMIN_EMAIL}:${process.env.ADMIN_PASSWORD}`,
+        ),
+        expiresAt: new Date(Date.now() + 28800000),
+      })
       sessionCookie(res, token, 28800)
       return send(res, 200, { email: process.env.ADMIN_EMAIL })
     }
 
     if (path.startsWith('/api/admin/')) {
       const session = await requireAdmin(req, db)
+      if (path === '/api/admin/upload-image' && method === 'POST') {
+        const { image } = await readBody(req, MAX_IMAGE_REQUEST_BYTES)
+        return send(res, 201, await uploadProductImage(image))
+      }
       if (path === '/api/admin/session' && method === 'GET')
         return send(res, 200, { email: session.email })
       if (path === '/api/admin/logout' && method === 'POST') {

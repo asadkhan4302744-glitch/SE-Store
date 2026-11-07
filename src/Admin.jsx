@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react'
 import { request, money } from './api'
+import { uploadImage } from './upload-image'
 import {
   Brand,
   Dialog,
@@ -140,10 +141,31 @@ function ProductEditor({ product, onClose, onSaved }) {
   const [form, setForm] = useState(product || blankProduct)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [imageError, setImageError] = useState('')
+  const [imageUploaded, setImageUploaded] = useState(false)
   const field = (key, value) =>
     setForm((current) => ({ ...current, [key]: value }))
+  async function selectImage(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || uploading || busy) return
+    setUploading(true)
+    setImageError('')
+    setImageUploaded(false)
+    try {
+      const result = await uploadImage(file)
+      field('image', result.image)
+      setImageUploaded(true)
+    } catch (e) {
+      setImageError(e.message)
+    } finally {
+      setUploading(false)
+    }
+  }
   async function save(e) {
     e.preventDefault()
+    if (uploading || busy) return
     setBusy(true)
     setError('')
     try {
@@ -169,11 +191,11 @@ function ProductEditor({ product, onClose, onSaved }) {
     <Dialog
       title={product ? 'Edit product' : 'A new everyday essential'}
       onClose={() => {
-        if (!busy) onClose()
+        if (!busy && !uploading) onClose()
       }}
     >
       <form className="product-form" onSubmit={save}>
-        <fieldset disabled={busy}>
+        <fieldset disabled={busy || uploading}>
           <label>
             Product name
             <input
@@ -249,19 +271,44 @@ function ProductEditor({ product, onClose, onSaved }) {
               placeholder="What makes this product useful?"
             />
           </label>
-          <label>
-            Image URL
-            <input
-              maxLength={1500}
-              value={form.image}
-              onChange={(e) => field('image', e.target.value)}
-              placeholder="https://… or /images/your-image.png"
-            />
-            <small>
-              Use an HTTPS image link or a file in public/images. Leave blank
-              for a simple placeholder.
-            </small>
-          </label>
+          <div className="product-image-upload" aria-busy={uploading}>
+            <ProductMedia product={form} />
+            <div>
+              <label>
+                Product image
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={selectImage}
+                  aria-describedby="product-image-help"
+                />
+              </label>
+              <small id="product-image-help">
+                JPG, PNG, or WebP · up to 3 MB
+              </small>
+              <p role="status">
+                {uploading
+                  ? 'Uploading image…'
+                  : imageUploaded
+                    ? 'Image uploaded. Save the product to apply it.'
+                    : 'Choose a photo to upload. An image is optional.'}
+              </p>
+              {form.image && (
+                <button
+                  type="button"
+                  className="product-image-remove"
+                  onClick={() => {
+                    field('image', '')
+                    setImageUploaded(false)
+                    setImageError('')
+                  }}
+                >
+                  <X size={13} /> Remove image
+                </button>
+              )}
+            </div>
+          </div>
+          <ErrorNotice>{imageError}</ErrorNotice>
           <label>
             Badge <span>(optional)</span>
             <input
@@ -290,12 +337,12 @@ function ProductEditor({ product, onClose, onSaved }) {
           <button
             className="button button-outline"
             type="button"
-            disabled={busy}
+            disabled={busy || uploading}
             onClick={onClose}
           >
             Cancel
           </button>
-          <button className="button button-dark" disabled={busy}>
+          <button className="button button-dark" disabled={busy || uploading}>
             {busy ? 'Saving…' : product ? 'Save changes' : 'Add product'}
             <ArrowRight size={16} />
           </button>

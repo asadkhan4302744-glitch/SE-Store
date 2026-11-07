@@ -33,7 +33,7 @@ For a fresh checkout, copy `.env.example` to `.env`, supply a MongoDB URI and ad
 - Customers can search, filter, sort, view product details, manage a persistent shopping bag, and submit their delivery details.
 - Checkout saves an order and reserves stock atomically. Prices and delivery are calculated on the server. Repeated submissions with the same checkout key return the existing receipt.
 - **Place order & WhatsApp** saves the order first, then opens WhatsApp with the order reference, items, prices, delivery charge, total and customer delivery details prefilled. The customer taps Send in WhatsApp. Failed checkout does not open a prepared WhatsApp order; the confirmation page also provides a link if popups are blocked. Customer details and the full WhatsApp link remain in memory, while only the receipt is stored in the current tab for refresh. Payment is arranged after store confirmation; there is no online payment gateway.
-- Admin can add/edit products, set prices and stock, manage image URLs, and archive products by disabling **Visible in the store**. Archived products remain in historical orders.
+- Admin can add/edit products, set prices and stock, upload product photos to Cloudinary, and archive products by disabling **Visible in the store**. Archived products remain in historical orders.
 - Orders can be searched by reference, customer, phone or city, filtered by status, and updated to new/confirmed/shipped/completed/cancelled. Cancellation restores stock once; cancelled and completed orders cannot be reopened.
 - Admin sessions last eight hours in HTTP-only cookies. Login attempts are rate limited; customer information is available only to signed-in admins. Overview and order lists cover the most recent 500 orders.
 
@@ -45,7 +45,19 @@ MongoDB Atlas or another replica set is required for checkout/cancellation trans
 
 ## Images
 
-Place images in `public/images` and enter `/images/filename.png` in the product editor, or use an HTTPS image URL. A neutral placeholder is shown for missing images. Remote image files must be publicly accessible. The editor supports URLs, not file uploads.
+In the [Cloudinary Console](https://console.cloudinary.com/), copy your cloud name, API key, and API secret into these **server-only** environment variables (also listed in `.env.example`):
+
+```dotenv
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+For local development, add the values to `.env` and restart the server. For Vercel, add all three in Project Settings → Environment Variables and redeploy. No upload preset is needed. Never prefix these settings with `VITE_`.
+
+Open **Admin → Products → Add/Edit product → Product image** and select a JPG, PNG, or WebP file up to 3 MB. The authenticated server uploads it to `se-store/products` in Cloudinary, converts it to WebP, and limits dimensions to 1600 × 1600 while preserving proportions. The preview updates after upload; save the product to apply the image. Upload failures preserve the existing photo. Existing local and remote image URLs keep working. Missing images use a neutral placeholder.
+
+Replacing/removing a photo or cancelling the editor does not delete Cloudinary assets, since past orders may still reference them. Unused assets can be removed in the Cloudinary Console. Uploads use the [Cloudinary Node SDK](https://cloudinary.com/documentation/node_image_and_video_upload); credentials remain on the server.
 
 ## Checks
 

@@ -7,7 +7,7 @@ import 'dotenv/config'
 test(
   'MongoDB API: protected administration, product lifecycle, checkout, stock and session revocation',
   { skip: process.env.SE_STORE_INTEGRATION !== '1', timeout: 90000 },
-  async () => {
+  async (t) => {
     // Always isolate integration data. Never delete or test against the configured store database.
     process.env.MONGODB_DB = `se_store_test_${randomUUID().replaceAll('-', '').slice(0, 16)}`
     // Test authentication with isolated credentials, independently of the owner's .env password.
@@ -44,6 +44,11 @@ test(
     }
     try {
       assert.equal((await call('/admin/products')).response.status, 401)
+      assert.equal(
+        (await call('/admin/upload-image', 'POST', { image: '' })).response
+          .status,
+        401,
+      )
       const configuredPassword = process.env.ADMIN_PASSWORD
       try {
         delete process.env.ADMIN_PASSWORD
@@ -82,18 +87,59 @@ test(
         (await call('/admin/session')).data.email,
         process.env.ADMIN_EMAIL,
       )
+      // Exercise the nested Vercel upload route without uploading to a real account.
+      assert.equal(
+        (
+          await call('/admin/upload-image', 'POST', {
+            image: 'https://example.com/photo.png',
+          })
+        ).response.status,
+        400,
+      )
+      const { v2: cloudinary } = await import('cloudinary')
+      const cloudinaryKeys = [
+        'CLOUDINARY_CLOUD_NAME',
+        'CLOUDINARY_API_KEY',
+        'CLOUDINARY_API_SECRET',
+      ]
+      const savedCloudinary = cloudinaryKeys.map((key) => process.env[key])
+      t.after(() =>
+        cloudinaryKeys.forEach((key, i) => {
+          if (savedCloudinary[i] === undefined) delete process.env[key]
+          else process.env[key] = savedCloudinary[i]
+        }),
+      )
+      cloudinaryKeys.forEach((key) => {
+        process.env[key] = 'integration-test'
+      })
+      const upload = t.mock.method(cloudinary.uploader, 'upload', async () => ({
+        secure_url:
+          'https://res.cloudinary.com/integration-test/image/upload/test.webp',
+      }))
+      const uploaded = await call('/admin/upload-image', 'POST', {
+        image:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+      })
+      assert.equal(uploaded.response.status, 201)
+      assert.equal(upload.mock.callCount(), 1)
+      const tooLarge = await call('/admin/upload-image', 'POST', {
+        image: 'x'.repeat(4 * 1024 * 1024 + 1024),
+      })
+      assert.equal(tooLarge.response.status, 413)
+      assert.equal(upload.mock.callCount(), 1)
       const created = await call('/admin/products', 'POST', {
         name: 'Test LED',
         description: 'Integration test fixture',
         category: 'Lighting',
         price: 1000,
         stock: 3,
-        image: '',
+        image: uploaded.data.image,
         badge: '',
         active: true,
       })
       assert.equal(created.response.status, 201)
       const product = created.data.product
+      assert.equal(product.image, uploaded.data.image)
       assert.ok(
         (await call('/products')).data.products.some(
           (p) => p.id === product.id,
