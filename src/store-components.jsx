@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Headphones,
-  Home,
   MapPin,
   Menu,
   MessageCircle,
@@ -220,44 +219,6 @@ export function StoreLayout({ store, children }) {
           </a>
         </div>
       </footer>
-      <nav className="sf-mobile-nav" aria-label="Quick navigation">
-        <Link href="/" aria-current={url.pathname === '/' ? 'page' : undefined}>
-          <Home size={19} />
-          <span>Home</span>
-        </Link>
-        <Link
-          href="/shop"
-          aria-current={
-            url.pathname === '/shop' || url.pathname.startsWith('/products/')
-              ? 'page'
-              : undefined
-          }
-        >
-          <Package size={19} />
-          <span>Shop</span>
-        </Link>
-        <Link
-          href="/cart"
-          aria-current={
-            ['/cart', '/checkout', '/order-confirmation'].includes(url.pathname)
-              ? 'page'
-              : undefined
-          }
-        >
-          <span className="sf-mobile-bag">
-            <ShoppingBag size={19} />
-            {store.count > 0 && <b>{store.count}</b>}
-          </span>
-          <span>Bag</span>
-        </Link>
-        <Link
-          href="/contact"
-          aria-current={url.pathname === '/contact' ? 'page' : undefined}
-        >
-          <MessageCircle size={19} />
-          <span>Help</span>
-        </Link>
-      </nav>
       {store.toast && (
         <div className="sf-toast" role="status">
           <CheckCircle2 size={19} />
@@ -355,7 +316,7 @@ export function ProductCard({ product, onAdd }) {
             disabled={!product.stock}
             aria-label={`Add ${product.name} to bag`}
           >
-            <span>{product.stock ? 'Add' : 'Sold out'}</span>
+            <span>{product.stock ? 'Add to bag' : 'Sold out'}</span>
             <Plus size={17} />
           </button>
         </div>
