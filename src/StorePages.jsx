@@ -3,7 +3,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   BatteryCharging,
-  Check,
   ChevronDown,
   Grid2X2,
   Headphones,
@@ -41,32 +40,24 @@ export function HomePage({ store }) {
       <section className="sf-home-hero sf-container">
         <div className="sf-hero-copy">
           <p className="sf-eyebrow">
-            <span /> YOUR EVERYDAY, BETTER CONNECTED
+            <span /> ELECTRONICS MADE SIMPLE
           </p>
           <h1>
-            A little power.
-            <br />A world of
+            Everyday.
             <br />
-            <em>possibilities.</em>
+            Powered <em>better.</em>
           </h1>
           <p>
-            For the connections you count on and the life you plug into.
-            Discover practical electronics, with a little personal service.
+            Practical electronics, clear prices, and personal service from Phool
+            Nagar.
           </p>
           <div className="sf-hero-actions">
             <Link className="sf-button sf-button-dark" href="/shop">
-              Discover the store <ArrowRight size={18} />
+              Shop all products <ArrowRight size={18} />
             </Link>
             <Link className="sf-text-link" href="/about">
               Meet your local store <ArrowUpRight size={16} />
             </Link>
-          </div>
-          <div className="sf-hero-signoff">
-            <span className="sf-mini-logo">SE</span>
-            <span>
-              Your neighbourhood electronics store.
-              <strong>Phool Nagar, Punjab.</strong>
-            </span>
           </div>
         </div>
         <div className="sf-hero-display">
@@ -100,19 +91,10 @@ export function HomePage({ store }) {
           </div>
         </div>
       </section>
-      <div className="sf-home-promise sf-container">
-        <p>
-          GOOD PRODUCTS.<span>Clear prices.</span> REAL PEOPLE.
-          <span>That’s the SE way.</span>
-        </p>
-        <Link href="/about">
-          Get to know us <ArrowUpRight size={15} />
-        </Link>
-      </div>
       <section className="sf-section sf-container sf-home-products">
         <SectionHeading
-          eyebrow="THE EVERYDAY EDIT"
-          title="Good things, worth a closer look."
+          eyebrow="PRACTICAL PICKS"
+          title="Shop everyday essentials."
           href="/shop"
           link="Shop all products"
         />
@@ -122,67 +104,6 @@ export function HomePage({ store }) {
             <p>Ask us on WhatsApp about the item you’re looking for.</p>
           </EmptyState>
         )}
-      </section>
-      <section className="sf-feature-story">
-        <div className="sf-container">
-          <div className="sf-feature-image">
-            <img
-              src="/images/router-power-bank-in-use.png"
-              alt="A backup power bank beside a home Wi-Fi router"
-              loading="lazy"
-            />
-            <span>
-              <BatteryCharging size={18} /> A LITTLE BACKUP FOR YOUR EVERYDAY
-            </span>
-          </div>
-          <div className="sf-feature-copy">
-            <p className="sf-eyebrow">STAY CONNECTED. KEEP GOING.</p>
-            <h2>
-              Life doesn’t pause.
-              <br />
-              <em>Your Wi-Fi shouldn’t either.</em>
-            </h2>
-            <p>
-              A compact power bank for compatible 12V routers. For the work,
-              conversations, and little moments you’d rather keep connected.
-            </p>
-            <ul>
-              <li>
-                <Check size={16} /> Rechargeable six-cell battery pack
-              </li>
-              <li>
-                <Check size={16} /> Simple controls and a direct DC lead
-              </li>
-              <li>
-                <Check size={16} /> Personal help checking compatibility
-              </li>
-            </ul>
-            <Link
-              className="sf-button sf-button-dark"
-              href={shopCategory('Power & Backup')}
-            >
-              Explore power & backup <ArrowRight size={17} />
-            </Link>
-          </div>
-        </div>
-      </section>
-      <section className="sf-container sf-section sf-home-story">
-        <p className="sf-eyebrow">LOCAL STORE. PERSONAL SERVICE.</p>
-        <h2>
-          Small store.
-          <br />
-          <em>Good connections.</em>
-        </h2>
-        <div>
-          <p>
-            We’re Shahzad Electronics. From our store in Phool Nagar, we help
-            you find electronics that do what you need, without making things
-            complicated.
-          </p>
-          <Link className="sf-text-link" href="/about">
-            A little more about us <ArrowUpRight size={16} />
-          </Link>
-        </div>
       </section>
       <div className="sf-container sf-help-section">
         <NeedHelp />
