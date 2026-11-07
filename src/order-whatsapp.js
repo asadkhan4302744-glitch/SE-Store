@@ -13,6 +13,9 @@ export function orderWhatsAppUrl(order, customer) {
     ),
     '',
     `Subtotal: ${money(order.subtotal)}`,
+    ...(order.discount > 0
+      ? [`Discount (${order.couponCode}): -${money(order.discount)}`]
+      : []),
     `Delivery: ${order.delivery ? money(order.delivery) : 'Free'}`,
     `*Total: ${money(order.total)}*`,
   ]

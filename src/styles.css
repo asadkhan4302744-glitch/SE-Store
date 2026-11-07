@@ -2957,7 +2957,7 @@ td small {
   }
   .admin-sidebar nav {
     display: flex;
-    gap: 12px;
+    gap: 4px;
     margin-top: 13px;
   }
   .admin-sidebar nav > button {
@@ -2965,8 +2965,8 @@ td small {
     font-size: 10px;
     flex: 1;
     justify-content: center;
-    gap: 7px;
-    padding: 12px 5px;
+    gap: 4px;
+    padding: 12px 3px;
     border-bottom: 2px solid transparent;
   }
   .admin-sidebar nav > button svg {

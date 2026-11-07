@@ -44,6 +44,12 @@ test(
     }
     try {
       assert.equal((await call('/admin/products')).response.status, 401)
+      assert.equal((await call('/admin/coupons')).response.status, 401)
+      assert.equal(
+        (await call('/admin/coupons', 'POST', { code: 'TEST10' })).response
+          .status,
+        401,
+      )
       assert.equal(
         (await call('/admin/upload-image', 'POST', { image: '' })).response
           .status,
@@ -140,6 +146,77 @@ test(
       assert.equal(created.response.status, 201)
       const product = created.data.product
       assert.equal(product.image, uploaded.data.image)
+      const coupon = {
+        code: ' test10 ',
+        type: 'percentage',
+        value: 10,
+        minSubtotal: 2000,
+        active: true,
+      }
+      assert.equal(
+        (await call('/admin/coupons', 'POST', coupon)).response.status,
+        201,
+      )
+      assert.equal(
+        (await call('/admin/coupons', 'POST', coupon)).response.status,
+        409,
+      )
+      assert.equal(
+        (await call('/admin/coupons')).data.coupons[0].code,
+        'TEST10',
+      )
+      const quote = await call(
+        '/coupon',
+        'POST',
+        {
+          code: 'test10',
+          items: [{ id: product.id, quantity: 2, price: 1 }],
+          discount: 9999,
+        },
+        false,
+      )
+      assert.equal(quote.response.status, 200)
+      assert.equal(quote.data.quote.discount, 200)
+      assert.equal(quote.data.quote.total, 2050)
+      for (const code of ['MISSING', { $ne: null }])
+        assert.equal(
+          (
+            await call(
+              '/coupon',
+              'POST',
+              { code, items: [{ id: product.id, quantity: 2 }] },
+              false,
+            )
+          ).response.status,
+          400,
+        )
+      assert.equal(
+        (
+          await call(
+            '/coupon',
+            'POST',
+            { code: 'test10', items: [{ id: product.id, quantity: 1 }] },
+            false,
+          )
+        ).response.status,
+        400,
+      )
+      assert.equal(
+        (await call('/admin/coupons', 'PUT', { ...coupon, active: false }))
+          .response.status,
+        200,
+      )
+      assert.equal(
+        (
+          await call(
+            '/coupon',
+            'POST',
+            { code: 'test10', items: [{ id: product.id, quantity: 2 }] },
+            false,
+          )
+        ).response.status,
+        400,
+      )
       assert.ok(
         (await call('/products')).data.products.some(
           (p) => p.id === product.id,
@@ -147,6 +224,9 @@ test(
       )
       const checkout = {
         checkoutKey: randomUUID(),
+        couponCode: 'test10',
+        discount: 9999,
+        total: 1,
         items: [{ id: product.id, quantity: 2, price: 1 }],
         customer: {
           name: 'QA Customer',
@@ -156,12 +236,29 @@ test(
           notes: '',
         },
       }
+      // A coupon disabled since preview cannot be used to reserve stock.
+      assert.equal(
+        (await call('/orders', 'POST', checkout, false)).response.status,
+        400,
+      )
+      assert.equal(
+        (await call('/products')).data.products.find((p) => p.id === product.id)
+          .stock,
+        3,
+      )
+      await call('/admin/coupons', 'PUT', { ...coupon, active: true })
       const placed = await call('/orders', 'POST', checkout, false)
       assert.equal(placed.response.status, 201, JSON.stringify(placed.data))
-      assert.equal(placed.data.order.total, 2250)
+      assert.equal(placed.data.order.total, 2050)
+      assert.equal(placed.data.order.discount, 200)
+      assert.equal(placed.data.order.couponCode, 'TEST10')
       assert.equal(placed.data.order.customer, undefined)
+      // Idempotent retries preserve the saved discount even after a code is disabled.
+      await call('/admin/coupons', 'PUT', { ...coupon, active: false })
       const retry = await call('/orders', 'POST', checkout, false)
       assert.equal(retry.data.order.id, placed.data.order.id)
+      assert.equal(retry.data.order.discount, 200)
+      assert.equal(retry.data.order.total, 2050)
       assert.equal(
         (await call('/products')).data.products.find((p) => p.id === product.id)
           .stock,
@@ -172,7 +269,7 @@ test(
           await call(
             '/orders',
             'POST',
-            { ...checkout, checkoutKey: randomUUID() },
+            { ...checkout, checkoutKey: randomUUID(), couponCode: '' },
             false,
           )
         ).response.status,

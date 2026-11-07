@@ -51,6 +51,11 @@ export function useStore() {
   const [receipt, setReceipt] = useState(loadReceipt)
   const [submitting, setSubmitting] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
+  const [couponQuote, setCouponQuote] = useState(null)
+  const [couponError, setCouponError] = useState('')
+  const [checkingCoupon, setCheckingCoupon] = useState(false)
+  const couponRequest = useRef(0)
+  const couponCartKey = useRef('')
   const [toast, setToast] = useState('')
   const checkoutKey = useRef(null)
   const timer = useRef(null)
@@ -83,6 +88,7 @@ export function useStore() {
   }
   function updateCart(id, quantity) {
     if (submitting) return
+    removeCoupon()
     checkoutKey.current = null
     setCheckoutError('')
     setCart((current) =>
@@ -103,6 +109,7 @@ export function useStore() {
       notify('That quantity is not available. Please check your bag.')
       return false
     }
+    removeCoupon()
     checkoutKey.current = null
     setCheckoutError('')
     setCart((current) =>
@@ -130,18 +137,80 @@ export function useStore() {
       ) * 100,
     ) / 100
   const delivery = subtotal > 5000 ? 0 : 250
+  const cartKey = JSON.stringify(
+    lines.map(({ id, quantity, product }) => [
+      id,
+      quantity,
+      product?.price,
+      product?.stock,
+    ]),
+  )
+  couponCartKey.current = cartKey
+  const appliedCoupon = couponQuote?.cartKey === cartKey ? couponQuote : null
+  const discount = appliedCoupon?.discount || 0
   const invalidCart =
     !cart.length ||
     lines.some((item) => !item.product || item.quantity > item.product.stock)
+  function removeCoupon() {
+    if (submitting) return
+    couponRequest.current++
+    setCheckingCoupon(false)
+    setCouponQuote(null)
+    setCouponError('')
+    setCheckoutError('')
+    checkoutKey.current = null
+  }
+  async function applyCoupon(code) {
+    if (submitting || checkingCoupon || invalidCart || loading || error) return
+    const requestId = ++couponRequest.current
+    setCheckingCoupon(true)
+    setCouponError('')
+    setCouponQuote(null)
+    setCheckoutError('')
+    checkoutKey.current = null
+    try {
+      const { quote } = await request('/coupon', {
+        method: 'POST',
+        body: { code, items: cart },
+      })
+      if (
+        couponRequest.current !== requestId ||
+        couponCartKey.current !== cartKey
+      )
+        return
+      if (quote.subtotal !== subtotal) {
+        setCouponError(
+          'Prices changed. Review your bag and apply the coupon again.',
+        )
+        refresh()
+        return
+      }
+      setCouponQuote({ ...quote, cartKey })
+    } catch (e) {
+      if (
+        couponRequest.current === requestId &&
+        couponCartKey.current === cartKey
+      )
+        setCouponError(e.message)
+    } finally {
+      if (couponRequest.current === requestId) setCheckingCoupon(false)
+    }
+  }
   async function placeOrder() {
-    if (submitting || invalidCart || loading || error) return null
+    if (submitting || checkingCoupon || invalidCart || loading || error)
+      return null
     setSubmitting(true)
     setCheckoutError('')
     checkoutKey.current ||= crypto.randomUUID()
     try {
       const { order } = await request('/orders', {
         method: 'POST',
-        body: { items: cart, customer, checkoutKey: checkoutKey.current },
+        body: {
+          items: cart,
+          customer,
+          checkoutKey: checkoutKey.current,
+          couponCode: appliedCoupon?.couponCode || '',
+        },
       })
       const receipt = {
         ...order,
@@ -155,6 +224,8 @@ export function useStore() {
         /* The receipt stays available in memory. */
       }
       setCart([])
+      setCouponQuote(null)
+      setCouponError('')
       setCustomer(initialCustomer)
       checkoutKey.current = null
       refresh()
@@ -180,7 +251,13 @@ export function useStore() {
     count,
     subtotal,
     delivery,
-    total: subtotal + delivery,
+    discount,
+    couponCode: appliedCoupon?.couponCode || '',
+    couponError,
+    checkingCoupon,
+    applyCoupon,
+    removeCoupon,
+    total: Math.round((subtotal - discount + delivery) * 100) / 100,
     invalidCart,
     updateCart,
     add,

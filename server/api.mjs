@@ -11,7 +11,10 @@ import {
   calculateOrder,
   HttpError,
   ORDER_STATUSES,
+  normalizeCouponCode,
   validateCheckout,
+  validateCoupon,
+  validateItems,
   validateProduct,
 } from './domain.mjs'
 
@@ -106,6 +109,20 @@ export default async function api(req, res) {
     }
     const { db, client } = await database()
 
+    if (path === '/api/coupon' && method === 'POST') {
+      const body = await readBody(req)
+      const code = normalizeCouponCode(body.code)
+      const items = validateItems(body.items)
+      const coupon = await db.collection('coupons').findOne({ _id: code })
+      if (!coupon) throw new HttpError(400, 'This coupon code is not valid.')
+      const products = await db
+        .collection('products')
+        .find({ id: { $in: items.map((item) => item.id) } })
+        .toArray()
+      const { items: lines, ...quote } = calculateOrder(items, products, coupon)
+      return send(res, 200, { quote })
+    }
+
     if (path === '/api/products' && method === 'GET') {
       return send(res, 200, {
         products: (
@@ -176,6 +193,43 @@ export default async function api(req, res) {
 
     if (path.startsWith('/api/admin/')) {
       const session = await requireAdmin(req, db)
+      if (path === '/api/admin/coupons' && method === 'GET') {
+        const coupons = await db
+          .collection('coupons')
+          .find()
+          .sort({ createdAt: -1 })
+          .toArray()
+        return send(res, 200, {
+          coupons: coupons.map(({ _id, ...coupon }) => coupon),
+        })
+      }
+      if (path === '/api/admin/coupons' && ['POST', 'PUT'].includes(method)) {
+        const coupon = validateCoupon(await readBody(req))
+        if (method === 'POST') {
+          try {
+            await db
+              .collection('coupons')
+              .insertOne({ _id: coupon.code, ...coupon, createdAt: new Date() })
+          } catch (error) {
+            if (error.code === 11000)
+              throw new HttpError(
+                409,
+                'This coupon code already exists. Edit it instead.',
+              )
+            throw error
+          }
+        } else {
+          const result = await db
+            .collection('coupons')
+            .updateOne(
+              { _id: coupon.code },
+              { $set: { ...coupon, updatedAt: new Date() } },
+            )
+          if (!result.matchedCount)
+            throw new HttpError(404, 'Coupon not found.')
+        }
+        return send(res, method === 'POST' ? 201 : 200, { coupon })
+      }
       if (path === '/api/admin/upload-image' && method === 'POST') {
         const { image } = await readBody(req, MAX_IMAGE_REQUEST_BYTES)
         return send(res, 201, await uploadProductImage(image))
@@ -303,7 +357,14 @@ export default async function api(req, res) {
               { session: transaction },
             )
             .toArray()
-          const totals = calculateOrder(checkout.items, products)
+          const coupon = checkout.couponCode
+            ? await db
+                .collection('coupons')
+                .findOne({ _id: checkout.couponCode }, { session: transaction })
+            : null
+          if (checkout.couponCode && !coupon)
+            throw new HttpError(400, 'This coupon code is not valid.')
+          const totals = calculateOrder(checkout.items, products, coupon)
           order = {
             id: `SE-${randomBytes(6).toString('hex').toUpperCase()}`,
             checkoutKey: checkout.checkoutKey,
@@ -339,6 +400,8 @@ export default async function api(req, res) {
           id: order.id,
           items: order.items,
           subtotal: order.subtotal,
+          couponCode: order.couponCode || '',
+          discount: order.discount || 0,
           delivery: order.delivery,
           total: order.total,
         },

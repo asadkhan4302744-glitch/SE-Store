@@ -463,6 +463,14 @@ export function OrderTotals({ store }) {
         <span>Subtotal</span>
         <strong>{money(store.subtotal)}</strong>
       </div>
+      {store.discount > 0 && (
+        <div className="sf-discount">
+          <span>
+            Discount <small>({store.couponCode})</small>
+          </span>
+          <strong>−{money(store.discount)}</strong>
+        </div>
+      )}
       <div>
         <span>Delivery</span>
         <strong>

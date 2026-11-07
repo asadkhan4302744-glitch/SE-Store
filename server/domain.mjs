@@ -74,29 +74,60 @@ export function validateProduct(body) {
   }
 }
 
-export function validateCheckout(body) {
-  const customer = body.customer || {}
-  const name = text(customer.name, 'name', 100)
-  const phone = text(customer.phone, 'phone number', 25)
+export function normalizeCouponCode(value) {
+  const code = text(value, 'coupon code', 32).toUpperCase()
+  if (!/^[A-Z0-9_-]{3,32}$/.test(code))
+    throw new HttpError(
+      400,
+      'Coupon codes need 3–32 letters, numbers, hyphens, or underscores.',
+    )
+  return code
+}
+
+export function validateCoupon(body) {
+  const code = normalizeCouponCode(body.code)
+  if (!['percentage', 'fixed'].includes(body.type))
+    throw new HttpError(400, 'Choose a percentage or fixed discount.')
+  const max = body.type === 'percentage' ? 100 : 10000000
   if (
-    !/^\+?[\d\s()-]{10,25}$/.test(phone) ||
-    phone.replace(/\D/g, '').length < 10
+    typeof body.value !== 'number' ||
+    !Number.isFinite(body.value) ||
+    body.value <= 0 ||
+    body.value > max ||
+    Number(body.value.toFixed(2)) !== body.value
   )
-    throw new HttpError(400, 'Please enter a valid phone number.')
-  const city = text(customer.city, 'city', 80)
-  const address = text(customer.address, 'delivery address', 400)
-  const notes = text(customer.notes || '', 'order note', 500, false)
+    throw new HttpError(
+      400,
+      `Enter a discount greater than 0 and no more than ${max}, with at most two decimal places.`,
+    )
+  const minSubtotal = body.minSubtotal ?? 0
   if (
-    !Array.isArray(body.items) ||
-    !body.items.length ||
-    body.items.length > 30
+    typeof minSubtotal !== 'number' ||
+    !Number.isFinite(minSubtotal) ||
+    minSubtotal < 0 ||
+    minSubtotal > 10000000 ||
+    Number(minSubtotal.toFixed(2)) !== minSubtotal
   )
+    throw new HttpError(400, 'Enter a valid minimum order subtotal.')
+  if (typeof body.active !== 'boolean')
+    throw new HttpError(400, 'Choose whether the coupon is active.')
+  return {
+    code,
+    type: body.type,
+    value: body.value,
+    minSubtotal,
+    active: body.active,
+  }
+}
+
+export function validateItems(value) {
+  if (!Array.isArray(value) || !value.length || value.length > 30)
     throw new HttpError(
       400,
       'Your cart must contain between 1 and 30 products.',
     )
   const ids = new Set()
-  const items = body.items.map((item) => {
+  return value.map((item) => {
     if (
       typeof item?.id !== 'string' ||
       !/^[a-zA-Z0-9-]{1,100}$/.test(item.id) ||
@@ -115,6 +146,21 @@ export function validateCheckout(body) {
       throw new HttpError(400, 'Choose between 1 and 99 of each product.')
     return { id: item.id, quantity: item.quantity }
   })
+}
+
+export function validateCheckout(body) {
+  const customer = body.customer || {}
+  const name = text(customer.name, 'name', 100)
+  const phone = text(customer.phone, 'phone number', 25)
+  if (
+    !/^\+?[\d\s()-]{10,25}$/.test(phone) ||
+    phone.replace(/\D/g, '').length < 10
+  )
+    throw new HttpError(400, 'Please enter a valid phone number.')
+  const city = text(customer.city, 'city', 80)
+  const address = text(customer.address, 'delivery address', 400)
+  const notes = text(customer.notes || '', 'order note', 500, false)
+  const items = validateItems(body.items)
   if (
     typeof body.checkoutKey !== 'string' ||
     !/^[a-f\d-]{36}$/i.test(body.checkoutKey)
@@ -124,10 +170,14 @@ export function validateCheckout(body) {
     customer: { name, phone, city, address, notes },
     items,
     checkoutKey: body.checkoutKey,
+    couponCode:
+      body.couponCode === undefined || body.couponCode === ''
+        ? ''
+        : normalizeCouponCode(body.couponCode),
   }
 }
 
-export function calculateOrder(items, products) {
+export function calculateOrder(items, products, coupon = null) {
   const lines = items.map((item) => {
     const product = products.find((p) => p.id === item.id && p.active)
     if (!product)
@@ -153,10 +203,33 @@ export function calculateOrder(items, products) {
       lines.reduce((sum, line) => sum + line.price * line.quantity, 0) * 100,
     ) / 100
   const delivery = subtotal > FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_CHARGE
+  if (coupon && !coupon.active)
+    throw new HttpError(
+      400,
+      'This coupon is no longer available. Remove it or try another code.',
+    )
+  if (coupon && subtotal < coupon.minSubtotal)
+    throw new HttpError(
+      400,
+      `This coupon needs a product subtotal of at least Rs. ${coupon.minSubtotal.toLocaleString('en-PK')}.`,
+    )
+  const subtotalCents = Math.round(subtotal * 100)
+  const discountCents = coupon
+    ? Math.min(
+        subtotalCents,
+        Math.round(
+          coupon.type === 'percentage'
+            ? (subtotalCents * coupon.value) / 100
+            : coupon.value * 100,
+        ),
+      )
+    : 0
   return {
     items: lines,
     subtotal,
     delivery,
-    total: Math.round((subtotal + delivery) * 100) / 100,
+    couponCode: coupon?.code || '',
+    discount: discountCents / 100,
+    total: (subtotalCents - discountCents + delivery * 100) / 100,
   }
 }

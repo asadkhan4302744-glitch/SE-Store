@@ -49,3 +49,16 @@ test('refreshed receipts can open WhatsApp without customer information and show
     /Delivery details|undefined|Name:|Phone:|Address:/,
   )
 })
+
+test('discounted orders include the saved code, discount, and final total', () => {
+  const message = new URL(
+    orderWhatsAppUrl({
+      ...order,
+      couponCode: 'WELCOME10',
+      discount: 400,
+      total: 3850,
+    }),
+  ).searchParams.get('text')
+  assert.match(message, /Discount \(WELCOME10\): -Rs\. 400/)
+  assert.match(message, /Total: Rs\. 3,850/)
+})

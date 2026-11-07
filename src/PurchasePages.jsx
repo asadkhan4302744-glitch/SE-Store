@@ -17,6 +17,7 @@ import { EmptyState, ErrorNotice } from './components'
 import { money, whatsapp } from './api'
 import { Link, useRoute } from './router'
 import { orderWhatsAppUrl } from './order-whatsapp'
+import CouponField from './CouponField'
 import {
   Breadcrumb,
   CartLines,
@@ -123,6 +124,7 @@ export function CartPage({ store }) {
           <aside className="sf-order-summary">
             <p className="sf-eyebrow">THE LITTLE DETAILS</p>
             <h2>Order summary</h2>
+            <CouponField store={store} />
             <OrderTotals store={store} />
             {store.invalidCart && (
               <ErrorNotice>
@@ -160,7 +162,13 @@ export function CheckoutPage({ store }) {
   const { navigate } = useRoute()
   async function submit(event) {
     event.preventDefault()
-    if (store.submitting || store.invalidCart || store.loading || store.error)
+    if (
+      store.submitting ||
+      store.checkingCoupon ||
+      store.invalidCart ||
+      store.loading ||
+      store.error
+    )
       return
     // Open during the click so async checkout does not trigger a popup blocker.
     let whatsappWindow = null
@@ -355,6 +363,7 @@ export function CheckoutPage({ store }) {
               type="submit"
               disabled={
                 store.submitting ||
+                store.checkingCoupon ||
                 store.invalidCart ||
                 store.loading ||
                 !!store.error
@@ -380,6 +389,7 @@ export function CheckoutPage({ store }) {
               </Link>
             </div>
             <CartLines store={store} compact />
+            <CouponField store={store} />
             <OrderTotals store={store} />
             <div className="sf-summary-delivery">
               <Truck size={19} />

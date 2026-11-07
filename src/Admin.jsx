@@ -17,11 +17,13 @@ import {
   RefreshCw,
   Search,
   ShoppingBag,
+  Tag,
   Truck,
   X,
 } from 'lucide-react'
 import { request, money } from './api'
 import { uploadImage } from './upload-image'
+import CouponsAdmin from './CouponsAdmin'
 import {
   Brand,
   Dialog,
@@ -422,6 +424,12 @@ function OrderDetails({ order, onClose, onStatus }) {
           <span>Subtotal</span>
           <strong>{money(order.subtotal)}</strong>
         </div>
+        {order.discount > 0 && (
+          <div>
+            <span>Discount ({order.couponCode})</span>
+            <strong>−{money(order.discount)}</strong>
+          </div>
+        )}
         <div>
           <span>Delivery</span>
           <strong>{order.delivery ? money(order.delivery) : 'Free'}</strong>
@@ -477,6 +485,7 @@ export default function Admin() {
   const [email, setEmail] = useState(null)
   const [checking, setChecking] = useState(true)
   const [tab, setTab] = useState('overview')
+  const [couponRefresh, setCouponRefresh] = useState(0)
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(false)
@@ -496,6 +505,7 @@ export default function Admin() {
       .finally(() => setChecking(false))
   }, [])
   const refresh = useCallback(async () => {
+    setCouponRefresh((current) => current + 1)
     setLoading(true)
     setError('')
     try {
@@ -641,6 +651,7 @@ export default function Admin() {
             { id: 'overview', label: 'Overview', icon: LayoutDashboard },
             { id: 'products', label: 'Products', icon: Package },
             { id: 'orders', label: 'Orders', icon: ClipboardList },
+            { id: 'coupons', label: 'Coupons', icon: Tag },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -705,14 +716,18 @@ export default function Admin() {
                   ? 'Your store, at a glance.'
                   : tab === 'products'
                     ? 'The product shelf.'
-                    : 'Orders & deliveries.'}
+                    : tab === 'coupons'
+                      ? 'A little extra off.'
+                      : 'Orders & deliveries.'}
               </h1>
               <p>
                 {tab === 'overview'
                   ? 'A simple space to take care of business.'
                   : tab === 'products'
                     ? 'Add essentials, update prices, and keep stock in check.'
-                    : 'From a new order to a happy doorstep.'}
+                    : tab === 'coupons'
+                      ? 'Create and manage discount codes for checkout.'
+                      : 'From a new order to a happy doorstep.'}
               </p>
             </div>
             <div className="admin-heading-actions">
@@ -724,7 +739,7 @@ export default function Admin() {
               >
                 <RefreshCw size={18} className={loading ? 'spinning' : ''} />
               </button>
-              {tab !== 'orders' && (
+              {['overview', 'products'].includes(tab) && (
                 <button
                   className="button button-dark"
                   onClick={() => setEditor({ type: 'new' })}
@@ -739,6 +754,7 @@ export default function Admin() {
             <div className="admin-loading">Loading your store…</div>
           ) : (
             <>
+              {tab === 'coupons' && <CouponsAdmin refreshKey={couponRefresh} />}
               {tab === 'overview' && (
                 <>
                   <div className="stat-grid">
