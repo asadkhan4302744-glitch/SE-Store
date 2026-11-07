@@ -118,11 +118,7 @@ export default async function api(req, res) {
     }
 
     if (path === '/api/admin/login' && method === 'POST') {
-      if (
-        !process.env.ADMIN_EMAIL ||
-        !process.env.ADMIN_PASSWORD ||
-        process.env.ADMIN_PASSWORD.length < 12
-      )
+      if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD)
         throw new HttpError(
           503,
           'Admin credentials need to be configured on the server.',

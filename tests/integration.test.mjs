@@ -12,7 +12,8 @@ test(
     process.env.MONGODB_DB = `se_store_test_${randomUUID().replaceAll('-', '').slice(0, 16)}`
     // Test authentication with isolated credentials, independently of the owner's .env password.
     process.env.ADMIN_EMAIL = 'integration@se-store.test'
-    process.env.ADMIN_PASSWORD = randomUUID()
+    // A short fixture guards against accidentally reintroducing a length restriction.
+    process.env.ADMIN_PASSWORD = randomUUID().slice(0, 8)
     const { default: api } = await import('../api/[...route].js')
     const { default: adminApi } = await import('../api/admin/[action].js')
     const { default: productApi } =
@@ -43,6 +44,21 @@ test(
     }
     try {
       assert.equal((await call('/admin/products')).response.status, 401)
+      const configuredPassword = process.env.ADMIN_PASSWORD
+      try {
+        delete process.env.ADMIN_PASSWORD
+        assert.equal(
+          (
+            await call('/admin/login', 'POST', {
+              email: process.env.ADMIN_EMAIL,
+              password: configuredPassword,
+            })
+          ).response.status,
+          503,
+        )
+      } finally {
+        process.env.ADMIN_PASSWORD = configuredPassword
+      }
       assert.equal(
         (
           await call('/admin/login', 'POST', {

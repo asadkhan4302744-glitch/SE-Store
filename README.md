@@ -26,7 +26,7 @@ Open `http://localhost:5173` for the store and `http://localhost:5173/admin` for
 
 The existing `.env` supplies `MONGODB_URI`. Private `ADMIN_EMAIL` and a generated `ADMIN_PASSWORD` have been added locally; use those values to sign in. They are never included in the browser bundle or committed to Git. Restart the server after changing them. Changing either credential invalidates existing sessions.
 
-For a fresh checkout, copy `.env.example` to `.env`, supply a MongoDB URI and admin email, and choose a unique password of at least 12 characters. Keep `.env` private.
+For a fresh checkout, copy `.env.example` to `.env`, supply a MongoDB URI and admin email, and set a non-empty admin password. No minimum password length is enforced. Keep `.env` private.
 
 ## Store and administration
 
@@ -71,4 +71,4 @@ npm start
 
 `npm start` serves `dist` and the API on port 5173 (or `PORT`). Serve it behind HTTPS in production; production admin cookies require HTTPS. `npm run preview` is Vite's static-only build preview and does not run the API.
 
-For Vercel, use the Vite preset, `npm run build`, and output directory `dist`. The entry files in `api/` delegate to the shared server handler; `vercel.json` handles frontend navigation. Root API paths use `api/[...route].js`; nested admin paths use `api/admin/[action].js`, `api/admin/products/[id].js`, and `api/admin/orders/[id].js`. Keep these nested entry files: the top-level dynamic function alone does not match `/api/admin/login` or other nested paths in this Vite deployment. Configure `MONGODB_URI`, optional `MONGODB_DB`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` (at least 12 characters) as server environment variables. Configure Atlas network access for the deployment. Never prefix private settings with `VITE_`.
+For Vercel, use the Vite preset, `npm run build`, and output directory `dist`. The entry files in `api/` delegate to the shared server handler; `vercel.json` handles frontend navigation. Root API paths use `api/[...route].js`; nested admin paths use `api/admin/[action].js`, `api/admin/products/[id].js`, and `api/admin/orders/[id].js`. Keep these nested entry files: the top-level dynamic function alone does not match `/api/admin/login` or other nested paths in this Vite deployment. Configure `MONGODB_URI`, optional `MONGODB_DB`, `ADMIN_EMAIL`, and a non-empty `ADMIN_PASSWORD` as server environment variables. Configure Atlas network access for the deployment. Never prefix private settings with `VITE_`.
