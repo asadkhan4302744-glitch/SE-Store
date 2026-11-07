@@ -32,7 +32,7 @@ For a fresh checkout, copy `.env.example` to `.env`, supply a MongoDB URI and ad
 
 - Customers can search, filter, sort, view product details, manage a persistent shopping bag, and submit their delivery details.
 - Checkout saves an order and reserves stock atomically. Prices and delivery are calculated on the server. Repeated submissions with the same checkout key return the existing receipt.
-- The receipt includes an optional WhatsApp follow-up. Payment is arranged after store confirmation; there is no online payment gateway.
+- **Place order & WhatsApp** saves the order first, then opens WhatsApp with the order reference, items, prices, delivery charge, total and customer delivery details prefilled. The customer taps Send in WhatsApp. Failed checkout does not open a prepared WhatsApp order; the confirmation page also provides a link if popups are blocked. Customer details and the full WhatsApp link remain in memory, while only the receipt is stored in the current tab for refresh. Payment is arranged after store confirmation; there is no online payment gateway.
 - Admin can add/edit products, set prices and stock, manage image URLs, and archive products by disabling **Visible in the store**. Archived products remain in historical orders.
 - Orders can be searched by reference, customer, phone or city, filtered by status, and updated to new/confirmed/shipped/completed/cancelled. Cancellation restores stock once; cancelled and completed orders cannot be reopened.
 - Admin sessions last eight hours in HTTP-only cookies. Login attempts are rate limited; customer information is available only to signed-in admins. Overview and order lists cover the most recent 500 orders.

@@ -16,6 +16,7 @@ import {
 import { EmptyState, ErrorNotice } from './components'
 import { money, whatsapp } from './api'
 import { Link, useRoute } from './router'
+import { orderWhatsAppUrl } from './order-whatsapp'
 import {
   Breadcrumb,
   CartLines,
@@ -159,9 +160,34 @@ export function CheckoutPage({ store }) {
   const { navigate } = useRoute()
   async function submit(event) {
     event.preventDefault()
-    if (await store.placeOrder()) {
-      store.setToast('')
-      navigate('/order-confirmation')
+    if (store.submitting || store.invalidCart || store.loading || store.error)
+      return
+    // Open during the click so async checkout does not trigger a popup blocker.
+    let whatsappWindow = null
+    try {
+      whatsappWindow = window.open('about:blank', '_blank')
+      if (whatsappWindow) {
+        whatsappWindow.opener = null
+        whatsappWindow.document.title =
+          'Saving your order — Shahzad Electronics'
+        whatsappWindow.document.body.textContent =
+          'Saving your order. WhatsApp will open once it is saved.'
+      }
+    } catch {
+      /* The confirmation page also has a direct WhatsApp link. */
+    }
+    const order = await store.placeOrder()
+    if (!order) {
+      whatsappWindow?.close()
+      return
+    }
+    store.setToast('')
+    navigate('/order-confirmation')
+    try {
+      if (whatsappWindow && !whatsappWindow.closed)
+        whatsappWindow.location.replace(order.whatsappUrl)
+    } catch {
+      whatsappWindow?.close()
     }
   }
   return (
@@ -336,12 +362,12 @@ export function CheckoutPage({ store }) {
             >
               {store.submitting
                 ? 'Placing your order…'
-                : `Place order · ${money(store.total)}`}
+                : `Place order & WhatsApp · ${money(store.total)}`}
               <ArrowRight size={18} />
             </button>
             <p className="sf-checkout-privacy">
-              <LockKeyhole size={14} /> Your order and delivery details are
-              saved for the store to fulfil your order.
+              <LockKeyhole size={14} /> Your order is saved with the store
+              first. Then WhatsApp opens with your details ready to send.
             </p>
           </form>
           <aside className="sf-order-summary sf-checkout-summary">
@@ -389,7 +415,7 @@ export function ConfirmationPage({ store }) {
         </EmptyState>
       </div>
     )
-  const message = `Hello Shahzad Electronics! I’m following up on order ${order.id}.\n${order.items.map((item) => `${item.name} × ${item.quantity}`).join('\n')}\nTotal: ${money(order.total)}\nPlease confirm availability and payment details.`
+  const whatsappUrl = order.whatsappUrl || orderWhatsAppUrl(order)
   return (
     <div className="sf-container sf-confirmation">
       <div className="sf-confirmation-heading">
@@ -403,8 +429,8 @@ export function ConfirmationPage({ store }) {
           <em>We’re on it.</em>
         </h1>
         <p>
-          Your order has been saved. We’ll contact you to confirm the details
-          and get things moving.
+          Your order has been saved. Send the prepared WhatsApp message to share
+          the details with us. If WhatsApp didn’t open, use the button below.
         </p>
         <span className="sf-order-reference">
           Your order reference <strong>{order.id}</strong>
@@ -441,11 +467,11 @@ export function ConfirmationPage({ store }) {
           </ol>
           <a
             className="sf-button sf-button-dark"
-            href={`${whatsapp}?text=${encodeURIComponent(message)}`}
+            href={whatsappUrl}
             target="_blank"
             rel="noreferrer"
           >
-            <MessageCircle size={18} /> Follow up on WhatsApp{' '}
+            <MessageCircle size={18} /> Send order on WhatsApp{' '}
             <ArrowUpRight size={16} />
           </a>
           <Link className="sf-text-link" href="/shop">

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { request } from './api'
+import { orderWhatsAppUrl } from './order-whatsapp'
 
 export const initialCustomer = {
   name: '',
@@ -142,8 +143,13 @@ export function useStore() {
         method: 'POST',
         body: { items: cart, customer, checkoutKey: checkoutKey.current },
       })
-      setReceipt(order)
+      const receipt = {
+        ...order,
+        whatsappUrl: orderWhatsAppUrl(order, customer),
+      }
+      setReceipt(receipt)
       try {
+        // Persist only the receipt. The WhatsApp URL contains delivery details.
         sessionStorage.setItem('se-last-receipt', JSON.stringify(order))
       } catch {
         /* The receipt stays available in memory. */
@@ -152,7 +158,7 @@ export function useStore() {
       setCustomer(initialCustomer)
       checkoutKey.current = null
       refresh()
-      return order
+      return receipt
     } catch (e) {
       setCheckoutError(e.message)
       if (e.status === 409) {
